@@ -1,0 +1,19 @@
+namespace: helmcharttestphilip
+replicaCount: 1
+image:
+  pythonFlight: docker.io/peigner/python-flightv2:latest
+  nginx: docker.io/peigner/nginx-ryan:latest
+  busyboxLogger: docker.io/peigner/busybox-logger:latest
+  pullSecrets: secret-dockerhub-peigner-ropub
+service:
+  type: ClusterIP
+  port: 8080
+route:
+  host: nginx-route-helmcharttestphilip.apps.ocp-dev.bpscloud.net
+resources:
+  requests:
+    memory: "25Mi"
+    cpu: "5m"
+  limits:
+    memory: "500Mi"
+    cpu: "250m"

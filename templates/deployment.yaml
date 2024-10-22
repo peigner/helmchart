@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deployment-init-log-nginx-py
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      initContainers:
+        - name: init-my-log-collector
+          image: busybox
+          command: ['sh', '-c', 'touch /var/log/nginx/sidecaraccess.log && touch /var/log/nginx/initcontainer.log']
+          volumeMounts:
+            - name: log-volume
+              mountPath: /var/log/nginx
+      containers:
+        - name: python-flight
+          image: {{ .Values.image.pythonFlight }}
+          ports:
+            - containerPort: 8081
+          resources:
+            requests:
+              memory: {{ .Values.resources.requests.memory }}
+              cpu: {{ .Values.resources.requests.cpu }}
+            limits:
+              memory: {{ .Values.resources.limits.memory }}
+              cpu: {{ .Values.resources.limits.cpu }}
+          volumeMounts:
+            - name: html-volume
+              mountPath: /usr/share/nginx/html
+
+        - name: nginx
+          image: {{ .Values.image.nginx }}
+          ports:
+            - containerPort: {{ .Values.service.port }}
+          resources:
+            requests:
+              memory: {{ .Values.resources.requests.memory }}
+              cpu: {{ .Values.resources.requests.cpu }}
+            limits:
+              memory: {{ .Values.resources.limits.memory }}
+              cpu: {{ .Values.resources.limits.cpu }}
+          volumeMounts:
+            - name: html-volume
+              mountPath: /usr/share/nginx/html
+            - name: log-volume
+              mountPath: /var/log/nginx 
+
+        - name: busybox-sidecar-log
+          image: {{ .Values.image.busyboxLogger }}
+          ports:
+            - containerPort: 8082
+          resources:
+            requests:
+              memory: {{ .Values.resources.requests.memory }}
+              cpu: {{ .Values.resources.requests.cpu }}
+            limits:
+              memory: {{ .Values.resources.limits.memory }}
+              cpu: {{ .Values.resources.limits.cpu }}
+          volumeMounts:
+            - name: log-volume
+              mountPath: /var/log/nginx
+
+      volumes:
+        - name: html-volume
+          emptyDir: {}
+
+        - name: log-volume
+          emptyDir: {}
+
+      imagePullSecrets:
+        - name: {{ .Values.image.pullSecrets }}
